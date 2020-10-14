@@ -653,3 +653,48 @@ fun x, ¬ mem' x s
 
 example {α : Type} {s t : set α} {x : α} : mem' x (compl' s) = ¬ mem' x s := by refl
 
+--------------------------------------------------------------------------------
+
+class left_group (G : Type*) :=
+(op : G → G → G)
+(e : G)
+(assoc : ∀ a b c : G, op a (op b c) = op (op a b) c)
+(op_unit : ∀ a : G, op e a = a)
+(op_inv : ∀ a : G, ∃ a' : G, op a' a = e)
+
+open left_group
+
+example {G : Type*} [left_group G] : ∀ a : G, ∃ a' : G, op a a' = e :=
+have s1 : ∀ a : G, ∃ a' : G, op a' a = e := op_inv,
+assume a : G,
+have s2 : ∃ a' : G, op a' a = e := s1 a,
+exists.elim s2 (
+  assume a' : G,
+  assume a1 : op a' a = e,
+  let y := op a a' in
+  have s3 : op y y = y := (
+    calc
+    op y y = op (op a a') (op a a') : by refl
+    ... = op a (op a' (op a a')) : by exact eq.symm (assoc a a' (op a a'))
+    ... = op a (op (op a' a) a') : by rewrite (assoc a' a a')
+    ... = op a (op e a') : by rewrite a1
+    ... = op a a' : by rewrite (op_unit a')
+    ... = y : by refl
+  ),
+  have s4 : ∃ y' : G, op y' y = e := op_inv y,
+  exists.elim s4 (
+    assume y' : G,
+    assume a2 : op y' y = e,
+    have s5 : op a a' = e := (
+    calc
+    op a a' = y : by refl
+    ... = op e y : by exact eq.symm (op_unit y)
+    ... = op (op y' y) y : by rewrite a2
+    ... = op y' (op y y) : by exact eq.symm (assoc y' y y)
+    ... = op y' y : by rewrite s3
+    ... = e : by exact a2
+    ),
+    exists.intro a' s5
+  )
+)
+
