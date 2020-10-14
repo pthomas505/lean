@@ -763,31 +763,77 @@ induction M,
 case pre_term.var : y
 {
   -- M = pre_term.var y
-  show (pre_term.var y) [ x := N ] is_def, from sub_is_def.var y x N
+  show (pre_term.var y) [ x := N ] is_def, by exact sub_is_def.var y x N
 },
 case pre_term.app : P Q IH_1 IH_2
 {
   -- M = pre_term.app P Q
-  have s1 : x ∉ FV (pre_term.app P Q) := a1,
-  have s2 : x ∉ FV P → P [ x := N ] is_def := IH_1,
-  have s3 : x ∉ FV Q → Q [ x := N ] is_def := IH_2,
-  have s4 : (x ∉ FV P) ∧ (x ∉ FV Q) := dm_3_a s1,
-  have s5 : P [ x := N ] is_def := s2 (and.left s4),
-  have s6 : Q [ x := N ] is_def := s3 (and.right s4),
-  show (pre_term.app P Q) [ x := N ] is_def, from sub_is_def.app P Q x N s5 s6
+  have s1 : x ∉ FV (pre_term.app P Q), by exact a1,
+  have s2 : x ∉ FV P → P [ x := N ] is_def, by exact IH_1,
+  have s3 : x ∉ FV Q → Q [ x := N ] is_def, by exact IH_2,
+  have s4 : (x ∉ FV P) ∧ (x ∉ FV Q), by exact dm_3_a s1,
+  have s5 : P [ x := N ] is_def, by exact s2 (and.left s4),
+  have s6 : Q [ x := N ] is_def, by exact s3 (and.right s4),
+  show (pre_term.app P Q) [ x := N ] is_def, by exact sub_is_def.app P Q x N s5 s6
 },
 case pre_term.abs : y P
 {
   -- M = pre_term.abs y P
   by_cases x = y,
   {
-    have s7: x = y := h,
-    show (pre_term.abs y P) [ x := N ] is_def, from (sub_is_def.abs_same y P x N) s7
+    have s7: x = y, by exact h,
+    show (pre_term.abs y P) [ x := N ] is_def, by exact (sub_is_def.abs_same y P x N) s7
   },
   {
-    have s8 : x ≠ y := h,
-    have s9 : x ∉ FV (pre_term.abs y P) := a1,
-    show (pre_term.abs y P) [ x := N ] is_def, from (sub_is_def.abs_diff_nel y P x N) s8 s9
+    have s8 : x ≠ y, by exact h,
+    have s9 : x ∉ FV (pre_term.abs y P), by exact a1,
+    show (pre_term.abs y P) [ x := N ] is_def, by exact (sub_is_def.abs_diff_nel y P x N) s8 s9
+  }
+}
+end
+
+
+lemma lemma_1_2_5_i_b (M : pre_term) (x : var) (N : pre_term) : x ∉ FV M → M [ x := N ] = M :=
+begin
+assume a1 : x ∉ FV M,
+induction M,
+case pre_term.var : y
+{
+  -- M = pre_term.var y
+  have s1 : x ≠ y, by exact a1,
+  show (pre_term.var y) [ x := N ] = (pre_term.var y), by exact if_neg s1
+},
+case pre_term.app : P Q IH_1 IH_2
+{
+  -- M = pre_term.app P Q
+  have s2 : x ∉ FV (pre_term.app P Q), by exact a1,
+  have s3 : x ∉ FV P → P [ x := N ] = P, by exact IH_1,
+  have s4 : x ∉ FV Q → Q [ x := N ] = Q, by exact IH_2,
+  have s5 : (x ∉ FV P) ∧ (x ∉ FV Q), by exact dm_3_a s2,
+  have s6 : P [ x := N ] = P, by exact s3 (and.left s5),
+  have s7 : Q [ x := N ] = Q, by exact s4 (and.right s5),
+  have s8 : (pre_term.app P Q) [ x := N ] = pre_term.app (P [ x := N ]) (Q [ x := N ]), by refl,
+  have s9 : pre_term.app (P [ x := N ]) (Q [ x := N ]) = pre_term.app P (Q [ x := N ]), by rw s6,
+  have s10 : pre_term.app P (Q [ x := N ]) = pre_term.app P Q, by rw s7,
+  show (pre_term.app P Q) [ x := N ] = pre_term.app P Q, by exact eq.trans (eq.trans s8 s9) s10
+},
+case pre_term.abs : y P IH
+{
+  -- M = pre_term.abs y P
+  by_cases (x = y),
+  {
+    have s11 : x = y, by exact h,
+    show (pre_term.abs y P) [ x := N ] = pre_term.abs y P, by exact if_pos s11
+  },
+  {
+    have s12 : x ≠ y, by exact h,
+    have s13 : x ∉ FV (pre_term.abs y P), by exact a1,
+    have s14 : x ∉ FV P → P [ x := N ] = P, by exact IH,
+    have s15 : x ∉ FV P, by exact not_and_implies_4 s13 s12,
+    have s16 : P [ x := N ] = P, by exact s14 s15,
+    have s17 : (pre_term.abs y P) [ x := N ] = pre_term.abs y (P [ x := N ]), by exact if_neg s12,
+    have s18 : pre_term.abs y (P [ x := N ]) = pre_term.abs y P, by rw s16,
+    show (pre_term.abs y P) [ x := N ] = pre_term.abs y P, by exact eq.trans s17 s18
   }
 }
 end
