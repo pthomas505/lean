@@ -698,3 +698,60 @@ exists.elim s2 (
   )
 )
 
+--------------------------------------------------------------------------------
+
+def var := ℕ
+
+inductive pre_term : Type
+| var : var → pre_term
+| app : pre_term → pre_term → pre_term
+| abs : var → pre_term → pre_term
+
+notation `λ` y `.` P := pre_term.abs y P
+
+
+def FV : pre_term → set var
+| (pre_term.var x) := {x}
+| (pre_term.app P Q) := (FV P) ∪ (FV Q)
+| (pre_term.abs x P) := (FV P) \ {x}
+
+
+-- sub_is_def M x N means M [ x := N ] is defined
+inductive sub_is_def : pre_term → var → pre_term → Prop
+
+-- y [ x := N ] is defined
+| var (y : var) (x : var) (N : pre_term) :
+  sub_is_def (pre_term.var y) x N
+
+-- P [ x := N ] is defined → Q [ x := N ] is defined → (P Q) [ x := N ] is defined
+| app (P : pre_term) (Q : pre_term) (x : var) (N : pre_term) :
+  sub_is_def P x N → sub_is_def Q x N → sub_is_def (pre_term.app P Q) x N
+
+-- x = y → ( λ y . P ) [ x := N ] is defined
+| abs_same (y : var) (P : pre_term) (x : var) (N : pre_term) :
+  x = y → sub_is_def (pre_term.abs y P) x N
+
+-- x ≠ y → x ∉ FV ( λ y . P ) → ( λ y . P ) [ x := N ] is defined
+| abs_diff_nel (y : var) (P : pre_term) (x : var) (N : pre_term) :
+  x ≠ y → x ∉ FV (pre_term.abs y P) → sub_is_def (pre_term.abs y P) x N
+
+-- x ≠ y → y ∉ FV ( N ) → P [ x := N ] is defined → ( λ y . P ) [ x := N ] is defined
+| abs_diff (y : var) (P : pre_term) (x : var) (N : pre_term) :
+  x ≠ y → y ∉ FV N → sub_is_def P x N → sub_is_def (pre_term.abs y P) x N
+
+notation M `[` x `:=` N `]` `is_def` := sub_is_def M x N
+
+
+-- M [ x := N ]
+def sub : pre_term → var → pre_term → pre_term
+-- if x = y then y [ x := N ] = N else y [ x := N ] = y
+| (pre_term.var y) x N := if (x = y) then N else (pre_term.var y)
+
+-- (P Q) [ x := N ] = (P [ x := N ] Q [ x := N ])
+| (pre_term.app P Q) x N := pre_term.app (sub P x N) (sub Q x N)
+
+-- if x = y then ( λ y . P ) [ x := N ] = ( λ y . P ) else ( λ y . P ) [ x := N ] = ( λ y . P [ x := N ] )
+| (pre_term.abs y P) x N := if x = y then (pre_term.abs y P) else (pre_term.abs y (sub P x N))
+
+notation M `[` x `:=` N `]` := sub M x N
+
