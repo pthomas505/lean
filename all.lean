@@ -718,11 +718,48 @@ idempotent e' s1
 -- The inverse of each element is unique.
 example (G : Type*) [left_group G] (a b c : G) (h1 : op b a = e) (h2 : op a c = e) : c = b :=
 calc
-c = op e c : eq.symm (op_unit c)
+c = op e c : by exact eq.symm (op_unit c)
 ... = op (op b a) c : by rw h1
 ... = op b (op a c)  : by exact eq.symm (assoc b a c)
 ... = op b e : by rw h2
 ... = b : by exact lemma_2 b
+
+
+-- The right cancellation law.
+example {G : Type*} [left_group G] (a b c : G) : op b a = op c a → b = c :=
+assume a1 : op b a = op c a,
+have s1 : ∃ a', op a' a = e, by exact op_inv a,
+exists.elim s1 (
+  assume a' : G,
+  assume a2 : op a' a = e,
+  have s2 : op a a' = e, by exact lemma_1 a' a a2,
+  calc
+  b = op b e : by exact eq.symm (lemma_2 b)
+  ... = op b (op a a') : by rw s2
+  ... = op (op b a) a' : by exact assoc b a a'
+  ... = op (op c a) a' : by rw a1
+  ... = op c (op a a') : by exact eq.symm (assoc c a a')
+  ... = op c e : by rw s2
+  ... = c : by exact lemma_2 c
+)
+
+
+-- The left cancellation law.
+example {G : Type*} [left_group G] (a b c : G) : op a b = op a c → b = c :=
+assume a1 : op a b = op a c,
+have s1 : ∃ a', op a' a = e, by exact op_inv a,
+exists.elim s1 (
+  assume a' : G,
+  assume a2 : op a' a = e,
+  calc
+  b = op e b : by exact eq.symm (op_unit b)
+  ... = op (op a' a) b  : by rw a2
+  ... = op a' (op a b) : by exact eq.symm (assoc a' a b)
+  ... = op a' (op a c) : by rw a1
+  ... = op (op a' a) c : by exact assoc a' a c
+  ... = op e c : by rw a2
+  ... = c : by exact op_unit c
+)
 
 --------------------------------------------------------------------------------
 
