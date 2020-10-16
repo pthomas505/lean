@@ -716,13 +716,14 @@ idempotent e' s1
 
 
 -- The inverse of each element is unique.
-example (G : Type*) [left_group G] (a b c : G) (h1 : op b a = e) (h2 : op a c = e) : c = b :=
+example (G : Type*) [left_group G] (a b c : G) (h1 : op b a = e) (h2 : op c a = e) : b = c :=
+have s1 : op a b = e, by exact lemma_1 b a h1,
 calc
-c = op e c : by exact eq.symm (op_unit c)
-... = op (op b a) c : by rw h1
-... = op b (op a c)  : by exact eq.symm (assoc b a c)
-... = op b e : by rw h2
-... = b : by exact lemma_2 b
+b = op e b : by exact eq.symm (op_unit b)
+... = op (op c a) b : by rw h2
+... = op c (op a b) : by exact eq.symm (assoc c a b)
+... = op c e : by rw s1
+... = c : by exact lemma_2 c
 
 
 -- The right cancellation law.
