@@ -664,39 +664,65 @@ class left_group (G : Type*) :=
 
 open left_group
 
-example {G : Type*} [left_group G] : ∀ a : G, ∃ a' : G, op a a' = e :=
-have s1 : ∀ a : G, ∃ a' : G, op a' a = e := op_inv,
+
+lemma idempotent {G : Type*} [left_group G] : ∀ a : G, op a a = a → a = e :=
 assume a : G,
-have s2 : ∃ a' : G, op a' a = e := s1 a,
-exists.elim s2 (
+assume a1 : op a a = a,
+have s1 : ∃ a' : G, op a' a = e, by exact op_inv a,
+exists.elim s1 (
+  assume a' : G,
+  assume a2 : op a' a = e,
+  calc
+  a = op e a : by exact eq.symm (op_unit a)
+  ... = op (op a' a) a : by rw a2
+  ... = op a' (op a a) : by exact eq.symm (assoc a' a a)
+  ... = op a' a : by rw a1
+  ... = e : by exact a2
+)
+
+
+lemma lemma_1 {G : Type*} [left_group G] : ∀ a' a : G, op a' a = e → op a a' = e :=
+assume a' a : G,
+assume a1 : op a' a = e,
+have s1 : op (op a a') (op a a') = op a a', by exact (
+  calc
+  op (op a a') (op a a') = op a (op a' (op a a')) : by exact eq.symm (assoc a a' (op a a'))
+  ... = op a (op (op a' a) a') : by rw (assoc a' a a')
+  ... = op a (op e a') : by rw a1
+  ... = op a a' : by rw (op_unit a')
+),
+idempotent (op a a') s1
+
+
+lemma lemma_2 {G : Type*} [left_group G] : ∀ a : G, op a e = a :=
+assume a : G,
+have s1 : ∃ a' : G, op a' a = e, by exact op_inv a,
+exists.elim s1 (
   assume a' : G,
   assume a1 : op a' a = e,
-  let y := op a a' in
-  have s3 : op y y = y := (
-    calc
-    op y y = op (op a a') (op a a') : by refl
-    ... = op a (op a' (op a a')) : by exact eq.symm (assoc a a' (op a a'))
-    ... = op a (op (op a' a) a') : by rewrite (assoc a' a a')
-    ... = op a (op e a') : by rewrite a1
-    ... = op a a' : by rewrite (op_unit a')
-    ... = y : by refl
-  ),
-  have s4 : ∃ y' : G, op y' y = e := op_inv y,
-  exists.elim s4 (
-    assume y' : G,
-    assume a2 : op y' y = e,
-    have s5 : op a a' = e := (
-    calc
-    op a a' = y : by refl
-    ... = op e y : by exact eq.symm (op_unit y)
-    ... = op (op y' y) y : by rewrite a2
-    ... = op y' (op y y) : by exact eq.symm (assoc y' y y)
-    ... = op y' y : by rewrite s3
-    ... = e : by exact a2
-    ),
-    exists.intro a' s5
-  )
+  have s2 : op a a' = e, by exact lemma_1 a' a a1,
+  calc
+  op a e = op a (op a' a) : by rw a1
+  ... = op (op a a') a : by exact assoc a a' a
+  ... = op e a : by rw s2
+  ... = a : by exact op_unit a
 )
+
+
+-- The identity unit is unique.
+example (G : Type*) [left_group G] (e' : G) (h_left : ∀ x, op e' x = x) : e' = e :=
+have s1 : op e' e' = e', by exact h_left e',
+idempotent e' s1
+
+
+-- The inverse of each element is unique.
+example (G : Type*) [left_group G] (a b c : G) (h1 : op b a = e) (h2 : op a c = e) : c = b :=
+calc
+c = op e c : eq.symm (op_unit c)
+... = op (op b a) c : by rw h1
+... = op b (op a c)  : by exact eq.symm (assoc b a c)
+... = op b e : by rw h2
+... = b : by exact lemma_2 b
 
 --------------------------------------------------------------------------------
 
