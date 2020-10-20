@@ -1,5 +1,7 @@
 import tactic
 
+namespace hidden
+
 
 lemma not_not_1 {P : Prop} : ¬ ¬ P → P :=
 assume a1 :  ¬ ¬ P,
@@ -901,4 +903,6 @@ case pre_term.abs : y P IH
   }
 }
 end
+
+end hidden
 
