@@ -904,5 +904,331 @@ case pre_term.abs : y P IH
 }
 end
 
+--------------------------------------------------------------------------------
+
+class total_order (T : Type*) :=
+(le : T → T → Prop)
+(le_asymm : ∀ {x y : T}, le x y → le y x → x = y)
+(le_trans : ∀ {x y z : T}, le x y → le y z → le x z)
+(le_conn : ∀ {x y : T}, le x y ∨ le y x)
+
+open total_order
+
+
+-- x < y
+def lt {T : Type*} [total_order T] (x y : T) : Prop := le x y ∧ ¬ x = y
+
+-- x ≥ y
+def ge {T : Type*} [total_order T] (x y : T) : Prop := le y x
+
+-- x > y
+def gt {T : Type*} [total_order T] (x y : T) : Prop := ge x y ∧ ¬ x = y
+
+
+lemma ne_symm {α : Type*} {x y : α} : ¬ x = y → ¬ y = x :=
+assume a1 : ¬ x = y,
+assume a2 : y = x,
+have s1 : x = y := eq.symm a2,
+show false, from a1 s1
+
+
+lemma lt_to_gt {T : Type*} [total_order T] {x y : T} : lt x y → gt y x :=
+assume a1 : lt x y,
+have s1 : le x y := and.left a1,
+have s2 : ge y x := s1,
+have s3 : ¬ x = y := and.right a1,
+have s4 : ¬ y = x := ne_symm s3,
+and.intro s1 s4
+
+lemma gt_to_lt {T : Type*} [total_order T] {x y : T} : gt x y → lt y x :=
+assume a1 : gt x y,
+have s1 : ge x y := and.left a1,
+have s2 : le y x := s1,
+have s3 : ¬ x = y := and.right a1,
+have s4 : ¬ y = x := ne_symm s3,
+and.intro s1 s4
+
+
+lemma ge_asymm {T : Type*} [total_order T] {x y : T} : ge x y → ge y x → x = y :=
+assume a1 : ge x y,
+assume a2 : ge y x,
+have s1 : le y x := a1,
+have s2 : le x y := a2,
+le_asymm s2 s1
+
+
+lemma ge_trans {T : Type*} [total_order T] {x y z : T} : ge x y → ge y z → ge x z :=
+assume a1 : ge x y,
+assume a2 : ge y z,
+have s1 : le y x := a1,
+have s2 : le z y := a2,
+le_trans s2 s1
+
+
+lemma ge_conn {T : Type*} [total_order T] {x y : T} : ge x y ∨ ge y x :=
+have s1 : le x y ∨ le y x := le_conn,
+or.elim s1
+(
+  assume a1 : le x y,
+  have s2 : ge y x := a1,
+  or.intro_right (ge x y) s2
+)
+(
+  assume a2 : le y x,
+  have s3 : ge x y := a2,
+  or.intro_left (ge y x) s3
+)
+
+
+lemma le_refl {T : Type*} [total_order T] {x : T} : le x x :=
+have s1 : le x x ∨ le x x := le_conn,
+or.elim s1
+(
+  assume a1 : le x x,
+  a1
+)
+(
+  assume a2 : le x x,
+  a2
+)
+
+lemma ge_refl {T : Type*} [total_order T] {x : T} : ge x x :=
+have s1 : ge x x ∨ ge x x := ge_conn,
+or.elim s1
+(
+  assume a1 : ge x x,
+  a1
+)
+(
+  assume a2 : ge x x,
+  a2
+)
+
+
+lemma not_lt_refl {T : Type*} [total_order T] {x : T} : ¬ lt x x :=
+assume a1 : lt x x,
+have s1 : ¬ x = x := and.right a1,
+have s2 : x = x := eq.refl x,
+show false, from s1 s2
+
+lemma not_gt_refl {T : Type*} [total_order T] {x : T} : ¬ gt x x :=
+assume a1 : gt x x,
+have s1 : ¬ x = x := and.right a1,
+have s2 : x = x := eq.refl x,
+show false, from s1 s2
+
+
+lemma le_lt_trans {T : Type*} [total_order T] {x y z : T} : le x y → lt y z → lt x z :=
+assume a1 : le x y,
+assume a2 : lt y z,
+have s1 : le y z := and.left a2,
+have s2 : ¬ y = z := and.right a2,
+have s3 : le x z := le_trans a1 s1,
+have s4 : ¬ x = z :=
+by_contradiction (
+  assume a3: ¬ ¬ x = z,
+  have s5 : x = z := not_not_1 a3,
+  have s6 : le z y := eq.subst s5 a1,
+  have s7 : y = z := le_asymm s1 s6,
+  show false, from s2 s7
+),
+and.intro s3 s4
+
+lemma lt_le_trans {T : Type*} [total_order T] {x y z : T} : lt x y → le y z → lt x z :=
+assume a1 : lt x y,
+assume a2 : le y z,
+have s1 : le x y := and.left a1,
+have s2 : ¬ x = y := and.right a1,
+have s3 : le x z := le_trans s1 a2,
+have s4 : ¬ x = z :=
+by_contradiction (
+  assume a3 : ¬ ¬ x = z,
+  have s5 : x = z := not_not_1 a3,
+  have s6 : le y x := eq.subst (eq.symm s5) a2,
+  have s7 : x = y := le_asymm s1 s6,
+  show false, from s2 s7
+),
+and.intro s3 s4
+
+lemma lt_lt_trans {T : Type*} [total_order T] {x y z : T} : lt x y → lt y z → lt x z :=
+assume a1 : lt x y,
+assume a2 : lt y z,
+have s1 : le x y := and.left a1,
+le_lt_trans s1 a2
+
+
+lemma ge_gt_trans {T : Type*} [total_order T] {x y z : T} : ge x y → gt y z → gt x z :=
+assume a1 : ge x y,
+assume a2 : gt y z,
+have s1 : ge y z := and.left a2,
+have s2 : ¬ y = z := and.right a2,
+have s3 : ge x z := ge_trans a1 s1,
+have s4 : ¬ x = z :=
+by_contradiction (
+  assume a3: ¬ ¬ x = z,
+  have s5 : x = z := not_not_1 a3,
+  have s6 : ge z y := eq.subst s5 a1,
+  have s7 : y = z := ge_asymm s1 s6,
+  show false, from s2 s7
+),
+and.intro s3 s4
+
+lemma gt_ge_trans {T : Type*} [total_order T] {x y z : T} : gt x y → ge y z → gt x z :=
+assume a1 : gt x y,
+assume a2 : ge y z,
+have s1 : ge x y := and.left a1,
+have s2 : ¬ x = y := and.right a1,
+have s3 : ge x z := ge_trans s1 a2,
+have s4 : ¬ x = z :=
+by_contradiction (
+  assume a3 : ¬ ¬ x = z,
+  have s5 : x = z := not_not_1 a3,
+  have s6 : ge y x := eq.subst (eq.symm s5) a2,
+  have s7 : x = y := ge_asymm s1 s6,
+  show false, from s2 s7
+),
+and.intro s3 s4
+
+lemma gt_gt_trans {T : Type*} [total_order T] {x y z : T} : gt x y → gt y z → gt x z :=
+assume a1 : gt x y,
+assume a2 : gt y z,
+have s1 : ge x y := and.left a1,
+ge_gt_trans s1 a2
+
+
+lemma le_to_or {T : Type*} [total_order T] {x y : T} : le x y → (lt x y ∨ x = y) :=
+assume a1 : le x y,
+by_contradiction (
+  assume a2 : ¬ (lt x y ∨ x = y),
+  have s1 : ¬ lt x y ∧ ¬ x = y := dm_3_a a2,
+  have s2 : ¬ (le x y ∧ ¬ x = y) := and.left s1,
+  have s3 : ¬ x = y := and.right s1,
+  have s4 : ¬ le x y ∨ x = y := dm_1_b s2,
+  or.elim s4
+  (
+    assume a3 : ¬ le x y,
+    show false, from a3 a1
+  )
+  (
+    assume a4 : x = y,
+    show false, from s3 a4
+  )
+)
+
+
+lemma or_to_le {T : Type*} [total_order T] {x y : T} : (lt x y ∨ x = y) → le x y :=
+assume a1 : lt x y ∨ x = y,
+or.elim a1
+(
+  assume a2 : lt x y,
+  have s1 : le x y ∧ ¬ x = y := a2,
+  and.left s1
+)
+(
+  assume a3 : x = y,
+  have s2 : le x x := le_refl,
+  eq.subst a3 s2
+)
+
+
+lemma ge_to_or {T : Type*} [total_order T] {x y : T} : ge x y → (gt x y ∨ x = y) :=
+assume a1 : ge x y,
+by_contradiction (
+  assume a2 : ¬ (gt x y ∨ x = y),
+  have s1 : ¬ gt x y ∧ ¬ x = y := dm_3_a a2,
+  have s2 : ¬ (ge x y ∧ ¬ x = y) := and.left s1,
+  have s3 : ¬ x = y := and.right s1,
+  have s4 : ¬ ge x y ∨ x = y := dm_1_b s2,
+  or.elim s4
+  (
+    assume a3 : ¬ ge x y,
+    show false, from a3 a1
+  )
+  (
+    assume a4 : x = y,
+    show false, from s3 a4
+  )
+)
+
+lemma or_to_ge {T : Type*} [total_order T] {x y : T} : (gt x y ∨ x = y) → ge x y :=
+assume a1 : gt x y ∨ x = y,
+or.elim a1
+(
+  assume a2 : gt x y,
+  have s1 : ge x y ∧ ¬ x = y := a2,
+  and.left s1
+)
+(
+  assume a3 : x = y,
+  have s2 : ge x x := ge_refl,
+  eq.subst a3 s2
+)
+
+
+example {T : Type*} [total_order T] {x y : T} : lt x y → ¬ ge x y :=
+assume a1 : lt x y,
+assume a2 : ge x y,
+have s1 : le x y := and.left a1,
+have s2 : ¬ x = y := and.right a1,
+have s3 : le y x := a2,
+have s4 : x = y := le_asymm s1 s3,
+show false, from s2 s4
+
+
+example {T : Type*} [total_order T] {x y : T} : ¬ ge x y → ¬ x = y :=
+assume a1 : ¬ ge x y,
+assume a2 : x = y,
+have s1 : ge x x := ge_refl,
+have s2 : ge x y := eq.subst a2 s1,
+show false, from a1 s2
+
+
+example {T : Type*} [total_order T] {x y : T} : ¬ ge x y → le x y :=
+assume a1 : ¬ ge x y,
+have s1 : ¬ le y x := a1,
+have s2 : le x y ∨ le y x := le_conn,
+or.elim s2
+(
+  assume a2 : le x y,
+  a2
+)
+(
+  assume a3 : le y x,
+  false.elim (s1 a3)
+)
+
+
+example {T : Type*} [total_order T] {x y : T} : gt x y → ¬ le x y :=
+assume a1 : gt x y,
+assume a2 : le x y,
+have s1 : ge x y := and.left a1,
+have s2 : ¬ x = y := and.right a1,
+have s3 : ge y x := a2,
+have s4 : x = y := ge_asymm s1 s3,
+show false, from s2 s4
+
+
+example {T : Type*} [total_order T] {x y : T} : ¬ le x y → ¬ x = y :=
+assume a1 : ¬ le x y,
+assume a2 : x = y,
+have s1 : le x x := le_refl,
+have s2 : le x y := eq.subst a2 s1,
+show false, from a1 s2
+
+
+example {T : Type*} [total_order T] {x y : T} : ¬ le x y → ge x y :=
+assume a1 : ¬ le x y,
+have s1 : ¬ ge y x := a1,
+have s2 : ge x y ∨ ge y x := ge_conn,
+or.elim s2
+(
+  assume a2 : ge x y,
+  a2
+)
+(
+  assume a3 : ge y x,
+  false.elim (s1 a3)
+)
+
 end hidden
 
