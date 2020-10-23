@@ -15,7 +15,7 @@ assume a1 : P,
 assume a2 : ¬ P,
 show false, from a2 a1
 
-lemma not_not' {P : Prop} : ¬ ¬ P ↔ P :=
+lemma not_not {P : Prop} : ¬ ¬ P ↔ P :=
 iff.intro not_not_1 not_not_2
 
 --------------------------------------------------------------------------------
@@ -513,7 +513,7 @@ exists.elim a1 (
 
 --------------------------------------------------------------------------------
 
-lemma or_comm' {P Q : Prop} : (P ∨ Q) → (Q ∨ P) :=
+lemma or_comm {P Q : Prop} : (P ∨ Q) → (Q ∨ P) :=
 assume a1 : P ∨ Q,
 or.elim a1
 (
@@ -586,7 +586,7 @@ or_implies_4 (dm_1_a a1)
 
 lemma not_and_implies_2 {P Q : Prop} : ¬ (P ∧ Q) → Q → ¬ P :=
 assume a1 : ¬ (P ∧ Q),
-or_implies_4 (or_comm' (dm_1_a a1))
+or_implies_4 (or_comm (dm_1_a a1))
 
 
 lemma not_and_implies_3 {P Q : Prop} : ¬ (P ∧ ¬ Q) → P → Q :=
@@ -595,7 +595,7 @@ or_implies_3 (dm_1_b a1)
 
 lemma not_and_implies_4 {P Q : Prop} : ¬ (P ∧ ¬ Q) → ¬ Q → ¬ P :=
 assume a1 : ¬ (P ∧ ¬ Q),
-or_implies_2 (or_comm' (dm_1_b a1))
+or_implies_2 (or_comm (dm_1_b a1))
 
 
 lemma not_and_implies_5 {P Q : Prop} : ¬ (¬ P ∧ Q) → ¬ P → ¬ Q :=
@@ -604,7 +604,7 @@ or_implies_2 (dm_1_c a1)
 
 lemma not_and_implies_6 {P Q : Prop} : ¬ (¬ P ∧ Q) → Q → P :=
 assume a1 : ¬ (¬ P ∧ Q),
-or_implies_3 (or_comm' (dm_1_c a1))
+or_implies_3 (or_comm (dm_1_c a1))
 
 
 lemma not_and_implies_7 {P Q : Prop} : ¬ (¬ P ∧ ¬ Q) → ¬ P → Q :=
@@ -613,47 +613,59 @@ or_implies_1 (dm_1_d a1)
 
 lemma not_and_implies_8 {P Q : Prop} : ¬ (¬ P ∧ ¬ Q) → ¬ Q → P :=
 assume a1 : ¬ (¬ P ∧ ¬ Q),
-or_implies_1 (or_comm' (dm_1_d a1))
+or_implies_1 (or_comm (dm_1_d a1))
 
 --------------------------------------------------------------------------------
 
-def set' (α : Type) := α → Prop
+def set (α : Type) := α → Prop
 
 -- a is an element of the set s.
-def mem' {α : Type} (a : α) (s : set α) : Prop := s a
+def mem {α : Type} (a : α) (s : set α) : Prop := s a
+
+notation x `∈` S := mem x S
+notation x `∉` S := ¬ mem x S
+
 
 -- The set containing only a.
-def singleton' {α : Type} (a : α) : set' α := fun x, x = a
+def singleton {α : Type} (a : α) : set α := fun x, x = a
 
-example {α : Type} {a b : α} : mem' a (singleton' b) = (a = b) := by refl
+notation `{` x `}` := singleton x
+
+example {α : Type} {a b : α} : mem a (singleton b) = (a = b) := by refl
 
 
 -- The union of the sets s and t.
-def union' {α : Type} (s t : set' α) : set' α :=
-fun x, (mem' x s) ∨ (mem' x t)
+def union {α : Type} (s t : set α) : set α :=
+fun x, (mem x s) ∨ (mem x t)
 
-example {α : Type} {s t : set α} {x : α} : mem' x (union' s t) = ((mem' x s) ∨ (mem' x t)) := by refl
+notation s `∪`  t := union s t
+
+example {α : Type} {s t : set α} {x : α} : mem x (union s t) = ((mem x s) ∨ (mem x t)) := by refl
 
 
 -- The intersection of the sets s and t.
-def inter' {α : Type} (s t : set α) : set α :=
-fun x, (mem' x s) ∧ (mem' x t)
+def inter {α : Type} (s t : set α) : set α :=
+fun x, (mem x s) ∧ (mem x t)
 
-example {α : Type} {s t : set α} {x : α} : mem' x (inter' s t) = ((mem' x s) ∧ (mem' x t)) := by refl
+notation s `∩` t := inter s t
+
+example {α : Type} {s t : set α} {x : α} : mem x (inter s t) = ((mem x s) ∧ (mem x t)) := by refl
 
 
 -- The difference of the sets s and t.
-def diff' {α : Type} (s t : set α) : set α :=
-fun x, (mem' x s) ∧ ¬ (mem' x t)
+def diff {α : Type} (s t : set α) : set α :=
+fun x, (mem x s) ∧ ¬ (mem x t)
 
-example {α : Type} {s t : set α} {x : α} : mem' x (diff' s t) = ((mem' x s) ∧ ¬ (mem' x t)) := by refl
+notation s `\` t := diff s t
+
+example {α : Type} {s t : set α} {x : α} : mem x (diff s t) = ((mem x s) ∧ ¬ (mem x t)) := by refl
 
 
 -- The complement of the set s.
-def compl' {α : Type} (s : set α) : set α :=
-fun x, ¬ mem' x s
+def compl {α : Type} (s : set α) : set α :=
+fun x, ¬ mem x s
 
-example {α : Type} {s t : set α} {x : α} : mem' x (compl' s) = ¬ mem' x s := by refl
+example {α : Type} {s t : set α} {x : α} : mem x (compl s) = ¬ mem x s := by refl
 
 --------------------------------------------------------------------------------
 
