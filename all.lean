@@ -669,112 +669,115 @@ example {α : Type} {s t : set α} {x : α} : mem x (compl s) = ¬ mem x s := by
 
 --------------------------------------------------------------------------------
 
-class left_group (G : Type*) :=
+class group (G : Type*) :=
 (op : G → G → G)
-(e : G)
-(assoc : ∀ a b c : G, op a (op b c) = op (op a b) c)
-(op_unit : ∀ a : G, op e a = a)
-(op_inv : ∀ a : G, ∃ a' : G, op a' a = e)
-
-open left_group
-
-
-lemma idempotent {G : Type*} [left_group G] : ∀ a : G, op a a = a → a = e :=
-assume a : G,
-assume a1 : op a a = a,
-have s1 : ∃ a' : G, op a' a = e, by exact op_inv a,
-exists.elim s1 (
-  assume a' : G,
-  assume a2 : op a' a = e,
-  calc
-  a = op e a : by exact eq.symm (op_unit a)
-  ... = op (op a' a) a : by rw a2
-  ... = op a' (op a a) : by exact eq.symm (assoc a' a a)
-  ... = op a' a : by rw a1
-  ... = e : by exact a2
-)
+(unit : G)
+(inv : G → G)
+(assoc : ∀ x y z : G, op x (op y z) = op (op x y) z)
+(unit_op : ∀ x : G, op unit x = x)
+(inv_op : ∀ x : G, op (inv x) x = unit)
 
 
-lemma lemma_1 {G : Type*} [left_group G] : ∀ a' a : G, op a' a = e → op a a' = e :=
-assume a' a : G,
-assume a1 : op a' a = e,
-have s1 : op (op a a') (op a a') = op a a', by exact (
-  calc
-  op (op a a') (op a a') = op a (op a' (op a a')) : by exact eq.symm (assoc a a' (op a a'))
-  ... = op a (op (op a' a) a') : by rw (assoc a' a a')
-  ... = op a (op e a') : by rw a1
-  ... = op a a' : by rw (op_unit a')
-),
-idempotent (op a a') s1
+open hidden.group
 
 
-lemma lemma_2 {G : Type*} [left_group G] : ∀ a : G, op a e = a :=
-assume a : G,
-have s1 : ∃ a' : G, op a' a = e, by exact op_inv a,
-exists.elim s1 (
-  assume a' : G,
-  assume a1 : op a' a = e,
-  have s2 : op a a' = e, by exact lemma_1 a' a a1,
-  calc
-  op a e = op a (op a' a) : by rw a1
-  ... = op (op a a') a : by exact assoc a a' a
-  ... = op e a : by rw s2
-  ... = a : by exact op_unit a
-)
-
-
--- The identity unit is unique.
-example (G : Type*) [left_group G] (e' : G) (h_left : ∀ x, op e' x = x) : e' = e :=
-have s1 : op e' e' = e', by exact h_left e',
-idempotent e' s1
-
-
--- The inverse of each element is unique.
-example (G : Type*) [left_group G] (a b c : G) (h1 : op b a = e) (h2 : op c a = e) : b = c :=
-have s1 : op a b = e, by exact lemma_1 b a h1,
+lemma idempotent {G : Type*} [group G] : ∀ x : G, op x x = x → x = unit :=
+assume x : G,
+assume a1 : op x x = x,
+let x' := inv x in
 calc
-b = op e b : by exact eq.symm (op_unit b)
-... = op (op c a) b : by rw h2
-... = op c (op a b) : by exact eq.symm (assoc c a b)
-... = op c e : by rw s1
-... = c : by exact lemma_2 c
+x = op unit x : by exact eq.symm (unit_op x)
+... = op (op x' x) x : by rw (inv_op x)
+... = op x' (op x x) : by exact eq.symm (assoc x' x x)
+... = op x' x : by rw a1
+... = unit : by exact (inv_op x)
 
 
--- The right cancellation law.
-example {G : Type*} [left_group G] (a b c : G) : op b a = op c a → b = c :=
-assume a1 : op b a = op c a,
-have s1 : ∃ a', op a' a = e, by exact op_inv a,
-exists.elim s1 (
-  assume a' : G,
-  assume a2 : op a' a = e,
-  have s2 : op a a' = e, by exact lemma_1 a' a a2,
+lemma op_inv {G : Type*} [group G] : ∀ x : G, op x (inv x) = unit :=
+assume x : G,
+let x' := inv x in
+have s1 : op (op x x') (op x x') = op x x', by exact (
   calc
-  b = op b e : by exact eq.symm (lemma_2 b)
-  ... = op b (op a a') : by rw s2
-  ... = op (op b a) a' : by exact assoc b a a'
-  ... = op (op c a) a' : by rw a1
-  ... = op c (op a a') : by exact eq.symm (assoc c a a')
-  ... = op c e : by rw s2
-  ... = c : by exact lemma_2 c
-)
+  op (op x x') (op x x') = op x (op x' (op x x')) : by exact eq.symm (assoc x x' (op x x'))
+  ... = op x (op (op x' x) x') : by rw (assoc x' x x')
+  ... = op x (op unit x') : by rw (inv_op x)
+  ... = op x x' : by rw (unit_op x')
+),
+idempotent (op x x') s1
 
 
--- The left cancellation law.
-example {G : Type*} [left_group G] (a b c : G) : op a b = op a c → b = c :=
-assume a1 : op a b = op a c,
-have s1 : ∃ a', op a' a = e, by exact op_inv a,
-exists.elim s1 (
-  assume a' : G,
-  assume a2 : op a' a = e,
-  calc
-  b = op e b : by exact eq.symm (op_unit b)
-  ... = op (op a' a) b  : by rw a2
-  ... = op a' (op a b) : by exact eq.symm (assoc a' a b)
-  ... = op a' (op a c) : by rw a1
-  ... = op (op a' a) c : by exact assoc a' a c
-  ... = op e c : by rw a2
-  ... = c : by exact op_unit c
-)
+lemma op_unit {G : Type*} [group G] : ∀ x : G, op x unit = x :=
+assume x : G,
+let x' := inv x in
+calc
+op x unit = op x (op x' x) : by rw (inv_op x)
+... = op (op x x') x : by exact assoc x x' x
+... = op unit x : by rw op_inv
+... = x : by exact unit_op x
+
+
+-- The unit is unique.
+example (G : Type*) [group G] (unit' : G) (h_left : ∀ x, op unit' x = x) : unit' = unit :=
+have s1 : op unit' unit' = unit', by exact h_left unit',
+idempotent unit' s1
+
+
+-- The inverse is unique.
+example (G : Type*) [group G] (inv' : G → G) (inv_op' : ∀ x : G, op (inv' x) x = unit) : ∀ x : G, inv x = inv' x :=
+assume x : G,
+calc
+inv x = op unit (inv x) : by exact eq.symm (unit_op (inv x))
+... = op (op (inv' x) x) (inv x) : by rw (inv_op' x)
+... = op (inv' x) (op x (inv x)) : by exact eq.symm (assoc (inv' x) x (inv x))
+... = op (inv' x) unit : by rw (op_inv x)
+... = inv' x : by exact op_unit (inv' x)
+
+
+lemma left_cancel {G : Type*} [group G] (x y z : G) : op x y = op x z → y = z :=
+assume a1 : op x y = op x z,
+let x' := inv x in
+have s1 : op x' x = unit, by exact inv_op x,
+calc
+y = op unit y : by exact eq.symm (unit_op y)
+... = op (op x' x) y  : by rw s1
+... = op x' (op x y) : by exact eq.symm (assoc x' x y)
+... = op x' (op x z) : by rw a1
+... = op (op x' x) z : by exact assoc x' x z
+... = op unit z : by rw s1
+... = z : by exact unit_op z
+
+
+lemma right_cancel {G : Type*} [group G] (x y z : G) : op y x = op z x → y = z :=
+assume a1 : op y x = op z x,
+let x' := inv x in
+have s1 : op x x' = unit, by exact op_inv x,
+calc
+y = op y unit : by exact eq.symm (op_unit y)
+... = op y (op x x') : by rw s1
+... = op (op y x) x' : by exact assoc y x x'
+... = op (op z x) x' : by rw a1
+... = op z (op x x') : by exact eq.symm (assoc z x x')
+... = op z unit : by rw s1
+... = z : by exact op_unit z
+
+
+lemma group_1 {G : Type*} [group G] (x y : G) : op x y = x → y = unit :=
+assume a1 : op x y = x,
+have s1 : x = op x unit, by exact eq.symm (op_unit x),
+have s2 : op x y = op x unit, by exact eq.trans a1 s1,
+left_cancel x y unit s2
+
+
+lemma group_2 {G : Type*} [group G] (x y : G) : op x y = unit → y = inv x :=
+assume a1 : op x y = unit,
+have s1 : group.unit = op x (inv x), by exact eq.symm (op_inv x),
+have s2 : op x y = op x (inv x), by exact eq.trans a1 s1,
+left_cancel x y (inv x) s2
+
+
+lemma group_3 {G : Type*} [group G] (x : G) : x = inv (inv x) :=
+have s1 : op (inv x) x = unit, by exact inv_op x,
+group_2 (inv x) x s1
 
 --------------------------------------------------------------------------------
 
