@@ -1245,5 +1245,140 @@ or.elim s2
   false.elim (s1 a3)
 )
 
+--------------------------------------------------------------------------------
+
+class field (F : Type) extends has_add F, has_neg F, has_zero F, has_mul F, has_inv F, has_one F :=
+(add_assoc : ∀ x y z : F, x + (y + z) = (x + y) + z)
+(add_comm : ∀ x y : F, x + y = y + x)
+(add_neg_left : ∀ x : F, -x + x = 0)
+(add_zero_left : ∀ x : F, 0 + x = x)
+(mul_assoc : ∀ x y z : F, x * (y * z) = (x * y) * z)
+(mul_comm : ∀ x y : F, x * y = y * x)
+(mul_inv_left : ∀ x : F, ¬ x = 0 → x⁻¹ * x = 1)
+(mul_one_left : ∀ x : F, 1 * x = x)
+(dist_left : ∀ x y z : F, x * (y + z) = (x * y) + (x * z))
+(zero_inv : (0 : F)⁻¹ = 0)
+
+open hidden.field
+
+
+lemma add_idempotent {F : Type} [field F] : ∀ x : F, x + x = x → x = 0 :=
+assume x : F,
+assume a1 : x + x = x,
+calc
+x   = 0 + x        : eq.symm (add_zero_left x)
+... = (-x + x) + x : by rw (add_neg_left x)
+... = -x + (x + x) : eq.symm (add_assoc (-x) x x)
+... = -x + x       : by rw a1
+... = 0            : add_neg_left x
+
+
+lemma add_neg_right {F : Type} [field F] : ∀ x : F, x + -x = 0 :=
+assume x : F,
+have s1 : (x + -x) + (x + -x) = x + -x := (
+calc
+(x + -x) + (x + -x) = x + (-x + (x + -x)) : eq.symm (add_assoc x (-x) (x + -x))
+                ... = x + ((-x + x) + -x) : by rw (add_assoc (-x) x (-x))
+                ... = x + (0 + -x)        : by rw (add_neg_left x)
+                ... = x + -x              : by rw (add_zero_left (-x))
+),
+add_idempotent (x + -x) s1
+
+
+lemma add_zero_right {F : Type} [field F] : ∀ x : F, x + 0 = x :=
+assume x : F,
+calc
+x + 0 = x + (-x + x) : by rw (add_neg_left x)
+  ... = (x + -x) + x : add_assoc x (-x) x
+  ... = 0 + x        : by rw add_neg_right
+  ... = x            : add_zero_left x
+
+
+example (F : Type) [field F] (neg' : F → F) (add_neg_left' : ∀ x : F, (neg' x) + x = 0) : ∀ x : F, neg' x = -x :=
+assume x : F,
+calc
+neg' x = neg' x + 0        : eq.symm (add_zero_right (neg' x))
+   ... = neg' x + (x + -x) : by rw (add_neg_right x)
+   ... = (neg' x + x) + -x : add_assoc (neg' x) x (-x)
+   ... = 0 + -x            : by rw (add_neg_left' x)
+   ... = -x                : add_zero_left (-x)
+
+
+example (F : Type) [field F] (zero' : F) (add_zero_left' : ∀ x : F, zero' + x = x) : zero' = 0 :=
+have s1 : zero' + zero' = zero' := add_zero_left' zero',
+add_idempotent zero' s1
+
+
+lemma add_left_cancel {F : Type} [field F] : ∀ x y z : F, x + y = x + z → y = z :=
+assume x y z : F,
+assume a1 : x + y = x + z,
+calc
+y   = 0 + y        : eq.symm (add_zero_left y)
+... = (-x + x) + y : by rw (add_neg_left x)
+... = -x + (x + y) : eq.symm (add_assoc (-x) x y)
+... = -x + (x + z) : by rw a1
+... = (-x + x) + z : add_assoc (-x) x z
+... = 0 + z        : by rw (add_neg_left x)
+... = z            : add_zero_left z
+
+
+lemma add_right_cancel {F : Type} [field F] : ∀ x y z : F, y + x = z + x → y = z :=
+assume x y z : F,
+assume a1 : y + x = z + x,
+calc
+y   = y + 0        : eq.symm (add_zero_right y)
+... = y + (x + -x) : by rw (add_neg_right x)
+... = (y + x) + -x : add_assoc y x (-x)
+... = (z + x) + -x : by rw a1
+... = z + (x + -x) : eq.symm (add_assoc z x (-x))
+... = z + 0        : by rw (add_neg_right x)
+... = z            : add_zero_right z
+
+
+lemma add_1 {F : Type} [field F] : ∀ x y : F, x + y = x → y = 0 :=
+assume x y : F,
+assume a1 : x + y = x,
+have s1 : x = x + 0 := eq.symm (add_zero_right x),
+have s2 : x + y = x + 0 := eq.trans a1 s1,
+add_left_cancel x y 0 s2
+
+
+lemma add_2 {F : Type} [field F] : ∀ x y : F, x + y = 0 → y = -x :=
+assume x y : F,
+assume a1 : x + y = 0,
+have s1 : 0 = x + -x := eq.symm (add_neg_right x),
+have s2 : x + y = x + -x := eq.trans a1 s1,
+add_left_cancel x y (-x) s2
+
+
+lemma neg_neg {F : Type} [field F] : ∀ x : F, x = -(-x) :=
+assume x : F,
+have s1 : -x + x = 0 := add_neg_left x,
+add_2 (-x) x s1
+
+
+lemma mul_idempotent {F : Type} [field F] : ∀ x : F, ¬ x = 0 → x * x = x → x = 1 :=
+assume x : F,
+assume a1 : ¬ x = 0,
+assume a2 : x * x = x,
+calc
+x   = 1 * x         : eq.symm (mul_one_left x)
+... = (x⁻¹ * x) * x : by rw (mul_inv_left x a1)
+... = x⁻¹ * (x * x) : eq.symm (mul_assoc x⁻¹ x x)
+... = x⁻¹ * x       : by rw a2
+... = 1             : mul_inv_left x a1
+
+
+lemma mul_zero_right {F : Type} [field F] : ∀ x : F, x * 0 = 0 :=
+assume x : F,
+calc
+x * 0 = 0 + (x * 0)                    : eq.symm (add_zero_left (x * 0))
+  ... = (-(x * 0) + (x * 0)) + (x * 0) : by rw (add_neg_left (x * 0))
+  ... = -(x * 0) + ((x * 0) + (x * 0)) : eq.symm (add_assoc (-(x * 0)) (x * 0) (x * 0))
+  ... = -(x * 0) + (x * (0 + 0))       : by rw (dist_left x 0 0)
+  ... = -(x * 0) + (x * 0)             : by rw (add_zero_left (0 : F))
+  ... = 0                              : add_neg_left (x * 0)
+
+
 end hidden
 
